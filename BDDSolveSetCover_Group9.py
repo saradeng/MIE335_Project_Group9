@@ -18,6 +18,7 @@ class BDD:
         self.numSets = int
         self.p = []
         self.S = []
+        self.path = []
         
         #Datastructures for path finding
         self.visited_dict = {}      #visited nodes
@@ -30,7 +31,7 @@ class BDD:
         return('str of BDD')
     
     def __repr__(self):
-        return(str(self.arcs))
+        return(str(self.path))
     
     def DataReader(self, filename):
         
@@ -224,16 +225,16 @@ class BDD:
             #Find the next node by finding the smallest g(n) + h(n)
             #g(n) is the value from cost list
             #h(n) is the number of layers to the target
+        self.path = optimal_path
         return optimal_path
         
 def BDDSolveSetCover(filename):
-     #Create a BDDSolveSetCover instance
-     solver = BDD(filename)
-     solver.DataReader(filename)
-     solver.BDDBuild(filename)
-     arcs = solver.BDDReduce(filename)
-     path = solver.Astar(filename)
-     return arcs, path
+    #Create a BDDSolveSetCover instance
+    solver = BDD(filename)
+    solver.DataReader(filename)
+    arcs = solver.BDDBuild(filename)
+    path = solver.Astar(filename)
+    return arcs, path
 
 
 # In[ ]:
