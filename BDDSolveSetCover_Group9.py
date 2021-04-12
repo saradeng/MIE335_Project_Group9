@@ -11,7 +11,6 @@ class BDD:
     
     def __init__(self, filename):
         
-        # print("run init")
         self.filename = filename
         self.nodes = []
         self.arcs = []
@@ -19,6 +18,7 @@ class BDD:
         self.numSets = int
         self.p = []
         self.S = []
+        self.path = []
         
         #Datastructures for path finding
         self.visited_dict = {}      #visited nodes
@@ -26,20 +26,14 @@ class BDD:
         self.node_layer_dict = {}   #Key: node, value: which layer the key is in
         self.parent = {}
         self.target_node = int
-        
-        # self.DataReader(filename)
-        # self.BDDBuild(filename)
-        # self.BDDReduce(filename)
-        # self.Algorithm(filename)
     
     def __str__(self):
         return('str of BDD')
     
     def __repr__(self):
-        return(str(self.arcs))
+        return(str(self.path))
     
     def DataReader(self, filename):
-        # print("run DataReader")
         
         # TA's DataReader
         self.filename
@@ -49,7 +43,6 @@ class BDD:
         return(self.numItems, self.numSets, self.p, self.S)
         
     def BDDBuild(self, filename):
-        # print("run BDDBuilder")
         
         # Convert lists to sets of items in each set
         for subsetIndex in range(self.numSets):
@@ -64,7 +57,6 @@ class BDD:
         self.g_cost[0] = math.inf
         self.node_layer_dict[0] = 0
         self.parent[0] = math.inf
-#         self.arcs.append({}) # Create and add 0th layer of arcs
         
         # Create nodes layer by layer
         u = 1 # first available node number
@@ -83,18 +75,14 @@ class BDD:
     
             for node in self.nodes[layerIndex].keys():
                 for d in range(2):
-#                     print("layerIndex="+str(layerIndex)+" node="+str(node)+" d="+str(d))
                     if d == 0:
                         newState = self.nodes[layerIndex][node]
                     else: # d == 1
                         newState = self.nodes[layerIndex][node] - self.S[layerIndex]
-#                     print(d,newState,remainItems)
                     if newState.issubset(remainItems):
                         if newState in nextLayerNodes.values():
-                            # v = nextLayerNodes.keys[nextLayerNodes.values().index(newState)]
                             v = list(nextLayerNodes.keys())[list(nextLayerNodes.values()).index(newState)]
                             arcsToNextLayer[(node,v,d)] = self.p[layerIndex]*d
-                            # print((node,v,d))
                             
                         else:
                             nextLayerNodes[u] = newState
@@ -103,10 +91,7 @@ class BDD:
                             self.node_layer_dict[u] = layerIndex + 1
                             self.parent[u] = math.inf
                             arcsToNextLayer[(node,u,d)] = self.p[layerIndex]*d
-                            # print((node,u,d))
                             u += 1 # next available node number
-#                     print(self.nodes)
-#                     print(self.arcs)
             self.nodes.append(nextLayerNodes)
             self.arcs.append(arcsToNextLayer)
         
@@ -114,10 +99,8 @@ class BDD:
         layer = { # Create last layer of nodes
             u: {}
         }
-        #print(u)
         self.visited_dict[u] = False
         self.g_cost[u] = math.inf
-        # print(self.nodes)
         self.node_layer_dict[u] = len(self.nodes)
         self.parent[u] = math.inf
         self.target_node = u
@@ -125,80 +108,66 @@ class BDD:
         
         # Consider the x_n variable
         arcsToTerminal = {}
-#         print(self.nodes[self.numSets-1].keys())
         for node in self.nodes[self.numSets-1].keys():
             for d in range(2):
-#                 print("node="+str(node)+" d="+str(d))
                 if d == 0:
                     newState = self.nodes[self.numSets-1][node]
                 else:
                     newState = self.nodes[self.numSets-1][node] - self.S[self.numSets-1]
-#                 print(newState,newState=={})
                 if newState == set():
                     arcsToTerminal[(node,u,d)] = self.p[self.numSets-1]*d
-                    # print((node,u,d))
 
-#                 print(self.nodes)
-#                 print(self.arcs)
-#         self.nodes.append(nextLayerNodes)
-#         print(arcsToTerminal)
         self.arcs.append(arcsToTerminal)
-        # print("nodes are: ", self.nodes)
-        # print(self.arcs)
-        # print(len(self.arcs))
-        # print(self.visited_dict)
-        # print(self.g_cost)
-        # print(self.node_layer_dict)
-        # print(self.parent)
         return(self.arcs)
     
     def BDDReduce(self, filename):
-        # print("run BDDReducer")
-        for layerIndex in range(self.numSets):
-#             print(self.arcs[self.numSets-1-layerIndex])
-            numArcsFromU = {}
-            potentialMatch = set() # have at least 1 arc in common
-            for arc1index in range(len(list(self.arcs[self.numSets-1-layerIndex].keys()))):
-                arc1 = list(self.arcs[self.numSets-1-layerIndex].keys())[arc1index]
-                u1,v1,d1 = arc1
-                if u1 not in numArcsFromU.keys():
-                    numArcsFromU[u1] = 1
-                else:
-                    numArcsFromU[u1] = 2
-                for arc2index in range(len(list(self.arcs[self.numSets-1-layerIndex].keys()))-arc1index-1):
-                    arc2 = list(self.arcs[self.numSets-1-layerIndex].keys())[arc1index+arc2index+1]
-                    u2,v2,d2 = arc2
-#                     print(arc1,arc2)
-                    if (v1 == v2) and (d1 == d2):
-                        potentialMatch.add((arc1,arc2))
-#             print(potentialMatch)
-            for pair in potentialMatch:
-                arc1,arc2 = pair
-                u1,v1,d1 = arc1
-                u2,v2,d2 = arc2
-                if numArcsFromU[u1] == numArcsFromU[u2]:
-#                     print("match")
-#                     print(u1,u2)
-                    # Merge u2 to u1
-                    self.arcs[self.numSets-1-layerIndex].pop(arc2) # delete arc2
-                    # redirect incoming arcs. CHECK if index might get out of bounds in some cases
-                    for arcIndex in range(len(list(self.arcs[self.numSets-2-layerIndex].keys()))):
-                        arc = list(self.arcs[self.numSets-2-layerIndex].keys())[arcIndex]
-                        u,v,d = arc
-                        if v == u2:
-                            p = self.arcs[self.numSets-2-layerIndex][arc]
-                            arcRedirect = (u,u1,d)
-                            self.arcs[self.numSets-2-layerIndex].pop(arc)
-                            self.arcs[self.numSets-2-layerIndex][arcRedirect] = p
-                    # delete v from self.nodes
-                    self.nodes[self.numSets-1-layerIndex].pop(u2)
         
-        # print(self.nodes)
-        # print(self.arcs)
+        for layerIndex in range(self.numSets):
+            
+            # Determine paths
+            paths = {}
+            for arcsIndex in range(len(list(self.arcs[self.numSets-1-layerIndex].keys()))):
+                arcI = list(self.arcs[self.numSets-1-layerIndex].keys())[arcsIndex]
+                uI,vI,dI = arcI
+                if uI not in paths.keys():
+                    paths[uI] = ((vI,dI))
+                else:
+                    paths[uI] = (paths[uI],(vI,dI))
+            
+            # for each pair of nodes
+            removed = set()
+            for path1 in range(len(list(paths.keys()))):
+                if list(paths.keys())[path1] in removed:
+                    continue
+                for path2 in range(len(list(paths.keys()))-path1-1):
+                    # if their paths are the same
+                    if paths[list(paths.keys())[path1]] == paths[list(paths.keys())[path2+path1+1]]:
+                        removed.add(list(paths.keys())[path2+path1+1])
+                        # Merge u2 to u1
+                        # create arc1 tuple
+                        u1 = list(paths.keys())[path1]
+                        v1,d1 = paths[list(paths.keys())[path1]]
+                        arc1 = u1,v1,d1
+                        # create arc2 tuple
+                        u2 = list(paths.keys())[path2+path1+1]
+                        v2,d2 = paths[list(paths.keys())[path2+path1+1]]
+                        arc2 = u2,v2,d2
+                        # delete arc2
+                        self.arcs[self.numSets-1-layerIndex].pop(arc2)
+                        # redirect incoming arcs
+                        for arcIndex in range(len(list(self.arcs[self.numSets-2-layerIndex].keys()))):
+                            arc = list(self.arcs[self.numSets-2-layerIndex].keys())[arcIndex]
+                            u,v,d = arc
+                            if v == u2:
+                                p = self.arcs[self.numSets-2-layerIndex][arc]
+                                arcRedirect = (u,u1,d)
+                                self.arcs[self.numSets-2-layerIndex].pop(arc)
+                                self.arcs[self.numSets-2-layerIndex][arcRedirect] = p
+                        # delete v from self.nodes
+                        self.nodes[self.numSets-1-layerIndex].pop(u2)
         return(self.arcs)
     
     def Astar(self, filename):
-        # print("run Algorithm")
         #Datastructures
         #n: number of nodes
         #e: number of arcs
@@ -214,8 +183,6 @@ class BDD:
         fringe = [0]
         self.g_cost[0] = 0
         self.parent[0] = (0,0,0)
-        # print(self.g_cost)
-        # print("target node is: ", self.target_node)
         optimal_path = []
         #If fringe is empty, terminate
         #Otherwise, keep looping
@@ -231,9 +198,6 @@ class BDD:
                     # print("Swap")
                     cur_node = fringe[i + 1]
             
-            print("Visiting: ", cur_node)
-            # print(fringe)
-            # print(self.g_cost)
             fringe.remove(cur_node)
             self.visited_dict[cur_node] = True
             #If it is target, call backtrace path and terminate
@@ -271,22 +235,17 @@ class BDD:
             #Find the next node by finding the smallest g(n) + h(n)
             #g(n) is the value from cost list
             #h(n) is the number of layers to the target
-        # print(optimal_path)
+        self.path = optimal_path
         return optimal_path
         
 def BDDSolveSetCover(filename):
-     print("run BDDSolveSetCover")
-     #Create a BDDSolveSetCover instance
-     solver = BDD(filename)
-     solver.DataReader(filename)
-     solver.BDDBuild(filename)
-     arcs = solver.BDDReduce(filename)
-     path = solver.Astar(filename)
-     return arcs, path
+    #Create a BDDSolveSetCover instance
+    solver = BDD(filename)
+    solver.DataReader(filename)
+    arcs = solver.BDDBuild(filename)
+    arcs = solver.BDDReduce(filename)
+    path = solver.Astar(filename)
+    return arcs, path
 
 
 # In[ ]:
-
-
-
-
