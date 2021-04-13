@@ -133,7 +133,6 @@ class BDD:
                     paths[uI] = ((vI,dI))
                 else:
                     paths[uI] = (paths[uI],(vI,dI))
-            
             # for each pair of nodes
             removed = set()
             for path1 in range(len(list(paths.keys()))):
@@ -144,16 +143,23 @@ class BDD:
                     if paths[list(paths.keys())[path1]] == paths[list(paths.keys())[path2+path1+1]]:
                         removed.add(list(paths.keys())[path2+path1+1])
                         # Merge u2 to u1
-                        # create arc1 tuple
+                        # get arc1 starting node
                         u1 = list(paths.keys())[path1]
-                        v1,d1 = paths[list(paths.keys())[path1]]
-                        arc1 = u1,v1,d1
+#                         v1,d1 = paths[list(paths.keys())[path1]]
+#                         arc1 = u1,v1,d1
                         # create arc2 tuple
                         u2 = list(paths.keys())[path2+path1+1]
-                        v2,d2 = paths[list(paths.keys())[path2+path1+1]]
-                        arc2 = u2,v2,d2
-                        # delete arc2
-                        self.arcs[self.numSets-1-layerIndex].pop(arc2)
+                        if type(paths[list(paths.keys())[path2+path1+1]][0]) != tuple:
+                            v2,d2 = paths[list(paths.keys())[path2+path1+1]]
+                            arc2 = u2,v2,d2
+                            # delete arc2
+                            self.arcs[self.numSets-1-layerIndex].pop(arc2)
+                        else:
+                            for arc2path in paths[list(paths.keys())[path2+path1+1]]:
+                                v2,d2 = arc2path
+                                arc2 = u2,v2,d2
+                                # delete arc2
+                                self.arcs[self.numSets-1-layerIndex].pop(arc2)
                         # redirect incoming arcs
                         for arcIndex in range(len(list(self.arcs[self.numSets-2-layerIndex].keys()))):
                             arc = list(self.arcs[self.numSets-2-layerIndex].keys())[arcIndex]
