@@ -61,36 +61,36 @@ class BDD:
         # Create nodes layer by layer
         u = 1 # first available node number
         
-        remainItemsList = []
-        remainItems = set()
-        for subset in reversed(range(self.numSets)):
-            remainItems = remainItems.union(self.S[subset])
-            remainItemsList.append(remainItems)
+        # Determine remaining available items after each set
+        remainItemsList = [] # Create empty list for sets
+        remainItems = set() # Create empty set of remaining available items after the last set
+        for subset in reversed(range(self.numSets)): # Iterate backwards from the last to the first set
+            remainItems = remainItems.union(self.S[subset]) # Add items from the current set to the set of remaining available items
+            remainItemsList.append(remainItems) # Append the new set of remaining items to the list
         
         for layerIndex in range(self.numSets-1):
             nextLayerNodes = {} # Create the next layer of nodes
             arcsToNextLayer = {} # Create arcs to the next layer
             
-            remainItems = remainItemsList[self.numSets-2-layerIndex]
+            remainItems = remainItemsList[self.numSets-2-layerIndex] # Get the set of remaining items after this layer
     
             for node in self.nodes[layerIndex].keys():
                 for d in range(2):
-                    if d == 0:
-                        newState = self.nodes[layerIndex][node]
-                    else: # d == 1
-                        newState = self.nodes[layerIndex][node] - self.S[layerIndex]
-                    if newState.issubset(remainItems):
-                        if newState in nextLayerNodes.values():
+                    if d == 0: # the set is not taken
+                        newState = self.nodes[layerIndex][node] # state is unchanged
+                    else: # d == 1, the set is taken
+                        newState = self.nodes[layerIndex][node] - self.S[layerIndex] # remove items in current set from state
+                    if newState.issubset(remainItems): # node is feasible
+                        if newState in nextLayerNodes.values(): # next layer already has another node with the same state
                             v = list(nextLayerNodes.keys())[list(nextLayerNodes.values()).index(newState)]
-                            arcsToNextLayer[(node,v,d)] = self.p[layerIndex]*d
-                            
-                        else:
-                            nextLayerNodes[u] = newState
+                            arcsToNextLayer[(node,v,d)] = self.p[layerIndex]*d # create arc to that node
+                        else: # next layer DOES NOT have a node with the same state
+                            nextLayerNodes[u] = newState # create new node
                             self.visited_dict[u] = False
                             self.g_cost[u] = math.inf
                             self.node_layer_dict[u] = layerIndex + 1
                             self.parent[u] = math.inf
-                            arcsToNextLayer[(node,u,d)] = self.p[layerIndex]*d
+                            arcsToNextLayer[(node,u,d)] = self.p[layerIndex]*d # create arc to the new node
                             u += 1 # next available node number
             self.nodes.append(nextLayerNodes)
             self.arcs.append(arcsToNextLayer)
@@ -106,63 +106,67 @@ class BDD:
         self.target_node = u
         self.nodes.append(layer) # Add last layer of nodes
         
-        # Consider the x_n variable
+        # Consider the x_n variable for the last layer of arcs
         arcsToTerminal = {}
         for node in self.nodes[self.numSets-1].keys():
             for d in range(2):
-                if d == 0:
-                    newState = self.nodes[self.numSets-1][node]
-                else:
-                    newState = self.nodes[self.numSets-1][node] - self.S[self.numSets-1]
-                if newState == set():
-                    arcsToTerminal[(node,u,d)] = self.p[self.numSets-1]*d
+                if d == 0: # the set is not taken
+                    newState = self.nodes[self.numSets-1][node] # state is unchanged
+                else: # d == 1, the set is taken
+                    newState = self.nodes[self.numSets-1][node] - self.S[self.numSets-1] # remove items in current set from state
+                if newState == set(): # node is feasible
+                    arcsToTerminal[(node,u,d)] = self.p[self.numSets-1]*d # create arc to the terminal
 
-        self.arcs.append(arcsToTerminal)
+        self.arcs.append(arcsToTerminal) # append the layer of arcs
         return(self.arcs)
     
     def BDDReduce(self, filename):
         
         for layerIndex in range(self.numSets):
             
-            # Determine paths
+            # Determine path from each node to the terminal
             paths = {}
-            for arcsIndex in range(len(list(self.arcs[self.numSets-1-layerIndex].keys()))):
+            for arcsIndex in range(len(list(self.arcs[self.numSets-1-layerIndex].keys()))): # iterate through the arcs
                 arcI = list(self.arcs[self.numSets-1-layerIndex].keys())[arcsIndex]
                 uI,vI,dI = arcI
-                if uI not in paths.keys():
-                    paths[uI] = ((vI,dI))
-                else:
-                    paths[uI] = (paths[uI],(vI,dI))
-            
+                if uI not in paths.keys(): # node was not yet added
+                    paths[uI] = ((vI,dI)) # add the node and that path from it
+                else: # node was already added
+                    paths[uI] = (paths[uI],(vI,dI)) # add that path from the node
             # for each pair of nodes
-            removed = set()
+            removed = set() # set of removed nodes to be skipped
             for path1 in range(len(list(paths.keys()))):
-                if list(paths.keys())[path1] in removed:
+                if list(paths.keys())[path1] in removed: # if node was removed
                     continue
                 for path2 in range(len(list(paths.keys()))-path1-1):
                     # if their paths are the same
-                    if paths[list(paths.keys())[path1]] == paths[list(paths.keys())[path2+path1+1]]:
-                        removed.add(list(paths.keys())[path2+path1+1])
+                    if paths[list(paths.keys())[path1]] == paths[list(paths.keys())[path2+path1+1]]: # nodes have the same paths
+                        removed.add(list(paths.keys())[path2+path1+1]) # add node to set of nodes to be skipped
                         # Merge u2 to u1
-                        # create arc1 tuple
+                        # get arc1 starting node
                         u1 = list(paths.keys())[path1]
-                        v1,d1 = paths[list(paths.keys())[path1]]
-                        arc1 = u1,v1,d1
                         # create arc2 tuple
                         u2 = list(paths.keys())[path2+path1+1]
-                        v2,d2 = paths[list(paths.keys())[path2+path1+1]]
-                        arc2 = u2,v2,d2
-                        # delete arc2
-                        self.arcs[self.numSets-1-layerIndex].pop(arc2)
+                        if type(paths[list(paths.keys())[path2+path1+1]][0]) != tuple: # if that node has only one path from it
+                            v2,d2 = paths[list(paths.keys())[path2+path1+1]]
+                            arc2 = u2,v2,d2
+                            # delete arc2
+                            self.arcs[self.numSets-1-layerIndex].pop(arc2)
+                        else: # that node has multiple paths from it
+                            for arc2path in paths[list(paths.keys())[path2+path1+1]]:
+                                v2,d2 = arc2path
+                                arc2 = u2,v2,d2
+                                # delete arc2
+                                self.arcs[self.numSets-1-layerIndex].pop(arc2)
                         # redirect incoming arcs
-                        for arcIndex in range(len(list(self.arcs[self.numSets-2-layerIndex].keys()))):
+                        for arcIndex in range(len(list(self.arcs[self.numSets-2-layerIndex].keys()))): # loop through previous layer of arcs
                             arc = list(self.arcs[self.numSets-2-layerIndex].keys())[arcIndex]
                             u,v,d = arc
-                            if v == u2:
-                                p = self.arcs[self.numSets-2-layerIndex][arc]
-                                arcRedirect = (u,u1,d)
-                                self.arcs[self.numSets-2-layerIndex].pop(arc)
-                                self.arcs[self.numSets-2-layerIndex][arcRedirect] = p
+                            if v == u2: # arc ends at node being removed
+                                p = self.arcs[self.numSets-2-layerIndex][arc] # get price of set
+                                arcRedirect = (u,u1,d) # create new arc
+                                self.arcs[self.numSets-2-layerIndex].pop(arc) # remove old arc
+                                self.arcs[self.numSets-2-layerIndex][arcRedirect] = p # add new arc
                         # delete v from self.nodes
                         self.nodes[self.numSets-1-layerIndex].pop(u2)
         return(self.arcs)
