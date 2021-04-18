@@ -6,6 +6,7 @@
 
 import pandas as pd
 import math
+import time
 
 class BDD:
     
@@ -194,14 +195,19 @@ class BDD:
             #Pop-up current arc with the smallest cost, mark it in the visited list
             
             cur_node = fringe[0]
+            print("fringe is", fringe)
+            for i in range(len(fringe)):
+                print("node: ", fringe[i], " cost: ", self.g_cost[fringe[i]])
             for i in range(len(fringe) - 1):
                 #Calculate the distance to the target
                 cur_dist = len(self.arcs) - self.node_layer_dict[fringe[i]]
                 next_dist = len(self.arcs) - self.node_layer_dict[fringe[i+1]]
-                if ((self.g_cost[fringe[i]] + cur_dist) > (self.g_cost[fringe[i + 1]] + next_dist)):
+                #if ((self.g_cost[cur_node] + cur_dist) > (self.g_cost[fringe[i + 1]] + next_dist)):
+                if ((self.g_cost[cur_node]) > (self.g_cost[fringe[i + 1]])):
                     # print("Swap")
                     cur_node = fringe[i + 1]
             
+            print("Selecting node: ", cur_node)
             fringe.remove(cur_node)
             self.visited_dict[cur_node] = True
             #If it is target, call backtrace path and terminate
@@ -248,8 +254,11 @@ def BDDSolveSetCover(filename):
     solver.DataReader(filename)
     arcs = solver.BDDBuild(filename)
     arcs = solver.BDDReduce(filename)
+    start = time.time()
     path = solver.Astar(filename)
-    return arcs, path
+    end = time.time()
+    astar_time = end - start
+    return arcs, path, astar_time
 
 
 # In[ ]:
