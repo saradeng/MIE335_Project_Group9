@@ -281,8 +281,7 @@ class BDD:
                 #Calculate the distance to the target
                 cur_dist = len(self.arcs) - self.node_layer_dict[fringe[i]]
                 next_dist = len(self.arcs) - self.node_layer_dict[fringe[i+1]]
-                if ((self.g_cost[fringe[i]] + cur_dist) > (self.g_cost[fringe[i + 1]] + next_dist)):
-                    # print("Swap")
+                if ((self.g_cost[cur_node]) > (self.g_cost[fringe[i + 1]])):
                     cur_node = fringe[i + 1]
             
             fringe.remove(cur_node)
