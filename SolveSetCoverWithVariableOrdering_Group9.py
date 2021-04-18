@@ -77,13 +77,17 @@ class BDD:
         return(self.numItems, self.numSets, self.p, self.S)
     
     def VariableOrdering(self, filename):
-        subsets = []
-        for s in self.S:
-            subsets.append(tuple(s))
-        set_cost = dict(zip(subsets,self.p))
-        self.S.sort(reverse=True,key=len)
-        for s in range(len(self.S)):
-            self.p[s] = set_cost[tuple(self.S[s])]
+#         subsets = []
+#         for s in self.S:
+#             subsets.append(tuple(s))
+#         set_cost = dict(zip(subsets,self.p))
+#         self.S.sort(reverse=True,key=len)
+#         for s in range(len(self.S)):
+#             self.p[s] = set_cost[tuple(self.S[s])]
+        zipped_lists = zip(self.S,self.p)
+        sorted_pairs = sorted(zipped_lists,key=lambda x:x[0],reverse=True)
+        tuples = zip(*sorted_pairs)
+        self.S,self.p = [list(tuple) for tuple in  tuples]
     
     def BDDBuild(self, filename):
         
@@ -323,6 +327,11 @@ class BDD:
         # Performance
         self.solve_time = time.time()-solve_start_time
         
+#         print(self.S)
+#         print(self.p)
+#         print(self.nodes)
+#         print(self.arcs)
+#         print(optimal_path)
         return(optimal_path,self.solve_time)
 
 def GurobiSolveSetCover(filename):
@@ -375,4 +384,19 @@ def SolveSetCover(inputfile, method):
         
         return(optimalValue,(unredNumNodes,unredNumArcs,redNumNodes,redNumArcs),(unredWidth,redWidth),build_time,reduce_time,solve_time,total_time)
     
+
+
+# In[1]:
+
+
+# lista = [['c','c','c'],['a'],['b','b']]
+# listA = [['A'],['C','C','C'],['B','B']]
+# zipped_lists = zip(lista,listA)
+# # print(str(list(zipped_lists)))
+# sorted_pairs = sorted(zipped_lists,key=lambda x:x[0],reverse=True)
+# print(str(sorted_pairs))
+# tuples = zip(*sorted_pairs)
+# lista,listA = [list(tuple) for tuple in  tuples]
+# print(lista)
+# print(listA)
 
