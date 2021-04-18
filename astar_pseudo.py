@@ -16,11 +16,8 @@ Function Astar(graph, startNode, endNode) return optimal_path:
     
     while fringe is not empty:
     
-        Set visited_dict to empty
-        Sort the fringe based on the distance between each fringe node and the endNode
-        Pop fringe[0] as cur_node
-        
-        Mark cur_node in visited_dict as True
+        Find cur_node in fringe such that it has the smallest distance to the endNode
+        Remove cur_node from fringe
         
         If cur_node is endNode Then:
             Call backtrace(startNode, cur_node) Return optimal_path
